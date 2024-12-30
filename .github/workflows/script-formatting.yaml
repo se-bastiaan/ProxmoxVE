@@ -1,0 +1,92 @@
+name: Check file formatting
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - "**/*.sh"
+
+jobs:
+  shfmt:
+    name: Shell scripts
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+
+      - name: Install shfmt
+        run: |
+          go install mvdan.cc/sh/v3/cmd/shfmt@latest
+          echo "$GOPATH/bin" >> $GITHUB_PATH
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          if ${{ github.event_name == 'pull_request' }}; then
+              echo "files=$(git diff --name-only -r HEAD^1 HEAD | grep '\.sh$' | xargs)" >> $GITHUB_OUTPUT
+          else
+              echo "files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep '\.sh$' | xargs)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run shfmt
+        id: shfmt
+        run: |
+          set +e
+
+          shfmt_output=$(shfmt -d ${{ steps.changed-files.outputs.files }})
+          if [[ $? -eq 0 ]]; then
+            exit 0
+          else
+            echo "diff=\"$(echo -n "$shfmt_output" | base64 -w 0)\"" >> $GITHUB_OUTPUT
+            echo -e $shfmt_output
+            exit 1
+          fi
+
+      - name: Post comment with results
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const result = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+            const diff = Buffer.from('${{ steps.shfmt.outputs.diff }}', 'base64').toString();
+            const issueNumber = context.payload.pull_request ? context.payload.pull_request.number : null;
+            const commentIdentifier = '<!-- shfmt-comment -->';
+            let newCommentBody;
+            if (result === 'failure') {
+              newCommentBody = `:x: We found issues in the formatting of the following changed files:\n\n\`\`\`diff\n${diff}\n\`\`\`\n${commentIdentifier}`;
+            } else {
+              newCommentBody = `:rocket: All changed shell scripts are formatted correctly! \n ${commentIdentifier}`;
+            }
+
+            if (issueNumber) {
+              const { data: comments } = await github.rest.issues.listComments({
+                ...context.repo,
+                issue_number: issueNumber
+              });
+
+              const existingComment = comments.find(comment => comment.body.includes(commentIdentifier));
+
+              if (existingComment) {
+                await github.rest.issues.updateComment({
+                  ...context.repo,
+                  comment_id: existingComment.id,
+                  body: newCommentBody
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  ...context.repo,
+                  issue_number: issueNumber,
+                  body: newCommentBody
+                });
+              }
+            }
