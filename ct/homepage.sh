@@ -52,6 +52,8 @@ function update_script() {
     cd /opt/homepage
     npx update-browserslist-db@latest >/dev/null 2>&1
     pnpm install >/dev/null 2>&1
+    export NEXT_PUBLIC_VERSION="v$RELEASE"
+    export NEXT_PUBLIC_REVISION="source"
     pnpm build >/dev/null 2>&1
     systemctl start homepage
     echo "${RELEASE}" >/opt/${APP}_version.txt
