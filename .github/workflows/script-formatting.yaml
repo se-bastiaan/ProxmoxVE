@@ -58,36 +58,57 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const result = '${{ job.status }}' === 'success' ? 'success' : 'failure';
-            const diff = Buffer.from('${{ steps.shfmt.outputs.diff }}', 'base64').toString();
-            const issueNumber = context.payload.pull_request ? context.payload.pull_request.number : null;
-            const commentIdentifier = '<!-- shfmt-comment -->';
-            let newCommentBody;
-            if (result === 'failure') {
-              newCommentBody = `:x: We found issues in the formatting of the following changed files:\n\n\`\`\`diff\n${diff}\n\`\`\`\n${commentIdentifier}`;
+            const result = "${{ job.status }}" === "success" ? "success" : "failure";
+            const diff = Buffer.from(
+              "${{ steps.shfmt.outputs.diff }}",
+              "base64",
+            ).toString();
+            const issueNumber = context.payload.pull_request
+              ? context.payload.pull_request.number
+              : null;
+            const commentIdentifier = "formatting-check";
+            let newCommentBody = `<!-- ${commentIdentifier}-start -->\n### Script formatting\n\n`;
+
+            if (result === "failure") {
+              newCommentBody +=
+                ":x: We found issues in the formatting of the following changed files:\n\n\`\`\`diff\n${diff}\n\`\`\`\n";
             } else {
-              newCommentBody = `:rocket: All changed shell scripts are formatted correctly! \n ${commentIdentifier}`;
+              newCommentBody += `:rocket: All changed shell scripts are formatted correctly!\n`;
             }
+
+            newCommentBody += `\n\n<!-- ${commentIdentifier}-end -->`;
 
             if (issueNumber) {
               const { data: comments } = await github.rest.issues.listComments({
                 ...context.repo,
-                issue_number: issueNumber
+                issue_number: issueNumber,
               });
 
-              const existingComment = comments.find(comment => comment.body.includes(commentIdentifier));
+              const existingComment = comments.find(
+                (comment) => comment.user.login === "github-actions[bot]",
+              );
 
               if (existingComment) {
+                if (existingComment.body.includes(commentIdentifier)) {
+                  const re = new RegExp(
+                    String.raw`<!-- ${commentIdentifier}-start -->[\s\S]*?<!-- ${commentIdentifier}-end -->`,
+                    "",
+                  );
+                  newCommentBody = existingComment.body.replace(re, newCommentBody);
+                } else {
+                  newCommentBody = existingComment.body + "\n\n---\n\n" + newCommentBody;
+                }
+
                 await github.rest.issues.updateComment({
                   ...context.repo,
                   comment_id: existingComment.id,
-                  body: newCommentBody
+                  body: newCommentBody,
                 });
               } else {
                 await github.rest.issues.createComment({
                   ...context.repo,
                   issue_number: issueNumber,
-                  body: newCommentBody
+                  body: newCommentBody,
                 });
               }
             }
