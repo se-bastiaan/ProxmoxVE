@@ -1,4 +1,4 @@
-name: Check file formatting
+name: Validate script formatting
 
 on:
   push:
@@ -8,10 +8,11 @@ on:
     paths:
       - "**/*.sh"
       - "**/*.func"
+      - ".github/workflows/validate-formatting.yaml"
 
 jobs:
   shfmt:
-    name: Shell scripts
+    name: Check changed files
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -22,14 +23,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-
-      - name: Install shfmt
-        run: |
-          go install mvdan.cc/sh/v3/cmd/shfmt@latest
-          echo "$GOPATH/bin" >> $GITHUB_PATH
-
       - name: Get changed files
         id: changed-files
         run: |
@@ -39,7 +32,18 @@ jobs:
               echo "files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | grep -E '\.(sh|func)$' | xargs)" >> $GITHUB_OUTPUT
           fi
 
+      - name: Set up Go
+        if: steps.changed-files.outputs.files != ''
+        uses: actions/setup-go@v5
+
+      - name: Install shfmt
+        if: steps.changed-files.outputs.files != ''
+        run: |
+          go install mvdan.cc/sh/v3/cmd/shfmt@latest
+          echo "$GOPATH/bin" >> $GITHUB_PATH
+
       - name: Run shfmt
+        if: steps.changed-files.outputs.files != ''
         id: shfmt
         run: |
           set +e
@@ -54,7 +58,7 @@ jobs:
           fi
 
       - name: Post comment with results
-        if: always() && github.event_name == 'pull_request'
+        if: always() && steps.changed-files.outputs.files != '' && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
@@ -66,7 +70,7 @@ jobs:
             const issueNumber = context.payload.pull_request
               ? context.payload.pull_request.number
               : null;
-            const commentIdentifier = "formatting-check";
+            const commentIdentifier = "validate-formatting";
             let newCommentBody = `<!-- ${commentIdentifier}-start -->\n### Script formatting\n\n`;
 
             if (result === "failure") {
