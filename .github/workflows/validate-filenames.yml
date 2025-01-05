@@ -6,6 +6,7 @@ on:
       - "ct/*.sh"
       - "install/*.sh"
       - "json/*.json"
+      - ".github/workflows/validate-filenames.yml"
 
 jobs:
   check-files:
@@ -28,7 +29,7 @@ jobs:
           fi
 
       - name: "Validate filenames in ct and install directory"
-        if: always()
+        if: always() && steps.changed-files.outputs.files != ''
         id: check-scripts
         run: |
           CHANGED_FILES=$(printf "%s\n" ${{ steps.changed-files.outputs.files }} | { grep -E '^(ct|install)/.*\.sh$' || true; })
@@ -51,7 +52,7 @@ jobs:
           fi
 
       - name: "Validate filenames in json directory."
-        if: always()
+        if: always() && steps.changed-files.outputs.files != ''
         id: check-json
         run: |
           CHANGED_FILES=$(printf "%s\n" ${{ steps.changed-files.outputs.files }} | { grep -E '^json/.*\.json$' || true; })
@@ -74,7 +75,7 @@ jobs:
           fi
 
       - name: Post results and comment
-        if: always() && github.event_name == 'pull_request'
+        if: always() && steps.check-scripts.outputs.files != '' && steps.check-json.outputs.files != '' && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
@@ -87,7 +88,7 @@ jobs:
             const issueNumber = context.payload.pull_request
               ? context.payload.pull_request.number
               : null;
-            const commentIdentifier = "filename-check";
+            const commentIdentifier = "validate-filenames";
             let newCommentBody = `<!-- ${commentIdentifier}-start -->\n### Filename validation\n\n`;
 
             if (result === "failure") {
