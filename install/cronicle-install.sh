@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 tteck
+# Copyright (c) 2021-2025 tteck | community-scripts ORG
 # Author: tteck (tteckster)
-# License: MIT
-# https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# Source: https://cronicle.net/
 
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
@@ -23,11 +23,15 @@ $STD apt-get install -y g++
 $STD apt-get install -y gcc
 msg_ok "Installed Dependencies"
 
+msg_info "Setting up Node.js Repository"
+mkdir -p /etc/apt/keyrings
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" >/etc/apt/sources.list.d/nodesource.list
+msg_ok "Set up Node.js Repository"
+
 msg_info "Installing Node.js"
-$STD bash <(curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh)
-. ~/.bashrc
-$STD nvm install 16.20.1
-ln -sf /root/.nvm/versions/node/v16.20.1/bin/node /usr/bin/node
+apt-get update &>/dev/null
+apt-get install -y nodejs &>/dev/null
 msg_ok "Installed Node.js"
 
 msg_info "Installing Cronicle Primary Server"
