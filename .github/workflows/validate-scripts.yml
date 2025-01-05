@@ -1,4 +1,4 @@
-name: Validate script headers
+name: Validate scripts
 on:
   push:
     branches:
@@ -7,7 +7,7 @@ on:
     paths:
       - "ct/*.sh"
       - "install/*.sh"
-      - ".github/workflows/validate-headers.yml"
+      - ".github/workflows/validate-scripts.yml"
 
 jobs:
   check-scripts:
@@ -77,7 +77,7 @@ jobs:
         run: |
           NON_COMPLIANT_FILES=""
           for FILE in ${{ steps.changed-files.outputs.files }}; do
-            if ! sed -n '3p' "$FILE" | { grep -qE "^# Copyright (c) [0-9]{4}(-[0-9]{4})? (community-scripts ORG|tteck|community-scripts ORG \| tteck)$" || false }; then
+            if ! sed -n '3p' "$FILE" | grep -qE "^# Copyright \(c\) [0-9]{4}(-[0-9]{4})? (tteck \| community-scripts ORG|community-scripts ORG|tteck)$"; then
               NON_COMPLIANT_FILES="$NON_COMPLIANT_FILES $FILE"
             fi
           done
@@ -167,8 +167,8 @@ jobs:
             };
 
             const issueNumber = context.payload.pull_request ? context.payload.pull_request.number : null;
-            const commentIdentifier = 'validate-headers';
-            let newCommentBody = `<!-- ${commentIdentifier}-start -->\n### Script header validation\n\n`;
+            const commentIdentifier = 'validate-scripts';
+            let newCommentBody = `<!-- ${commentIdentifier}-start -->\n### Script validation\n\n`;
 
             if (result === 'failure') {
               newCommentBody += ':x: We found issues in the following changed files:\n\n';
@@ -178,7 +178,7 @@ jobs:
                 }
               }
             } else {
-              newCommentBody += `:rocket: All changed shell scripts passed header validation!\n`;
+              newCommentBody += `:rocket: All changed shell scripts passed validation!\n`;
             }
 
             newCommentBody += `\n\n<!-- ${commentIdentifier}-end -->`;
