@@ -75,7 +75,7 @@ jobs:
 
             if (result === "failure") {
               newCommentBody +=
-                ":x: We found issues in the formatting of the following changed files:\n\n\`\`\`diff\n${diff}\n\`\`\`\n";
+                `:x: We found issues in the formatting of the following changed files:\n\n\`\`\`diff\n${diff}\n\`\`\`\n`;
             } else {
               newCommentBody += `:rocket: All changed shell scripts are formatted correctly!\n`;
             }
