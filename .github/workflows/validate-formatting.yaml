@@ -64,7 +64,7 @@ jobs:
           script: |
             const result = "${{ job.status }}" === "success" ? "success" : "failure";
             const diff = Buffer.from(
-              "${{ steps.shfmt.outputs.diff }}",
+              ${{ steps.shfmt.outputs.diff }},
               "base64",
             ).toString();
             const issueNumber = context.payload.pull_request
