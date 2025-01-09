@@ -2,7 +2,7 @@
 source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
 # Copyright (c) 2021-2025 tteck
 # Authors: tteck (tteckster)
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/cosdfmmunity-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://frigate.video/
 
 # App Default Values
@@ -29,7 +29,7 @@ function update_script() {
   check_container_storage
   check_container_resources
   if [[ ! -f /etc/systemd/system/frigate.service ]]; then
-    msg_error "No ${APP} Installation Found!"
+      msg_error "No ${APP} Installation Found!"
     exit
   fi
   msg_error "To update Frigate, create a new container and transfer your configuration."
